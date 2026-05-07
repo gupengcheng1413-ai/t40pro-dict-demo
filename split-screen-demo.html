@@ -1,0 +1,2000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1640, height=348, initial-scale=1.0">
+<title>T40 Pro 查词翻译 - 分屏设计 完整Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100;300;400;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #EC9709;
+    --bg-dark: #000000;
+    --bg-card: #16181C;
+    --bg-card-alt: #1a1d22;
+    --bg-card-hover: #1e2127;
+    --bg-secondary: #23272E;
+    --text-primary: #CFD6E2;
+    --text-secondary: #7B8396;
+    --text-muted: #959CAA;
+    --text-dim: rgba(207,214,226,0.7);
+    --text-aux: #464953;
+    --accent-green: #08C8A5;
+    --accent-cyan: #86F0FD;
+    --accent-teal: #32E9E1;
+    --divider: #2A2D35;
+    --divider-strong: #464953;
+    --font: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-en: 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-kai: 'KaiTi', 'STKaiti', serif;
+    --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  html, body {
+    width: 1640px;
+    height: 348px;
+    overflow: hidden;
+    font-family: var(--font);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+  }
+
+  /* ===== PAGE SYSTEM ===== */
+  .page {
+    width: 1640px;
+    height: 348px;
+    position: absolute;
+    top: 0; left: 0;
+    display: none;
+    overflow: hidden;
+    background: var(--bg-dark);
+    opacity: 0;
+    transition: opacity 0.25s var(--ease-out);
+  }
+  .page.active {
+    display: flex;
+    opacity: 1;
+  }
+  .page.fade-in {
+    animation: fadeIn 0.25s var(--ease-out) forwards;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeInBack {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3a3d45; border-radius: 2px; }
+
+  /* ===== HOME PAGE ===== */
+  #page-home { flex-direction: column; }
+
+  .home-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 24px;
+    gap: 28px;
+    flex-shrink: 0;
+    height: 50px;
+  }
+
+  .back-btn {
+    cursor: pointer;
+    font-size: 22px;
+    color: var(--text-primary);
+    opacity: 0.7;
+    width: 15px;
+    flex-shrink: 0;
+  }
+  .back-btn::before { content: '\2039'; font-size: 28px; }
+
+  .tab-item {
+    font-size: 24px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-bottom: 2px;
+  }
+  .tab-item.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+  .tab-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 2px;
+  }
+
+  .home-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 14px;
+    padding: 0 76px 14px;
+    overflow-y: auto;
+    align-content: start;
+  }
+
+  .history-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 24px;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+  .history-card:hover { background: var(--bg-card-hover); }
+  .history-card:active { background: #252830; }
+
+  /* ===== SPLIT SCREEN LAYOUT ===== */
+  .split-screen {
+    display: flex;
+    width: 1640px;
+    height: 348px;
+    position: relative;
+  }
+
+  .left-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .left-divider {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--divider);
+  }
+
+  .right-panel {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    padding: 8px 22px 16px 22px;
+  }
+
+  /* ===== SIDEBAR ICONS ===== */
+  .sidebar-icons {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    z-index: 10;
+  }
+
+  .sidebar-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .sidebar-icon:hover { background: rgba(255,255,255,0.06); }
+  .sidebar-icon.green { color: var(--accent-green); }
+  .sidebar-icon.cyan { color: var(--accent-cyan); }
+
+  .sidebar-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  /* ===== RIGHT NAV DOTS ===== */
+  .right-nav {
+    position: absolute;
+    right: 52px;
+    top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    z-index: 5;
+  }
+  .nav-dot {
+    font-size: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 1px 0;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .nav-dot:hover { color: var(--text-primary); }
+  .nav-dot.active { color: var(--accent-green); }
+
+  /* ===== CHARACTER/WORD DISPLAY ===== */
+  .char-box {
+    width: 110px;
+    height: 110px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 68px;
+    font-weight: 900;
+    font-family: var(--font-kai);
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-card-alt);
+    border: 2px solid var(--divider);
+    color: var(--primary);
+  }
+
+  .play-btn {
+    width: 26px; height: 26px;
+    background: var(--bg-secondary);
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .play-btn:hover { background: #2c3038; }
+  .play-btn::after {
+    content: '';
+    width: 0; height: 0;
+    border-left: 7px solid var(--text-primary);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+
+  .mic-btn {
+    width: 26px; height: 26px;
+    background: var(--bg-secondary);
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+
+  .pron-tag {
+    background: rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 20px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pron-tag:hover { background: rgba(255,255,255,0.18); }
+  .pron-tag.active { background: var(--primary); color: #000; }
+
+  /* ===== CONTENT SECTIONS ===== */
+  .section { margin-bottom: 10px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .section-icon {
+    width: 26px; height: 22px;
+    background: linear-gradient(143deg, #F39B00 34%, #E23700 91%);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 22px;
+    color: var(--text-primary);
+  }
+
+  .source-text {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .def-text {
+    font-size: 24px;
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+  .def-text p { margin-bottom: 2px; }
+
+  .dim-text { color: var(--text-dim); }
+  .green-text { color: var(--accent-teal); }
+  .orange-text { color: var(--primary); }
+  .cyan-text { color: var(--accent-teal); }
+
+  .more-link {
+    font-size: 22px;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .more-link:hover { color: var(--text-primary); }
+
+  .divider-line {
+    height: 1px;
+    background: var(--divider);
+    margin: 8px 0;
+  }
+
+  /* ===== TAG PILLS ===== */
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .tag-pill {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    min-width: 180px;
+  }
+  .tag-pill:hover { background: var(--bg-card-hover); }
+
+  .tag-pill-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  .tag-label { font-size: 20px; color: var(--text-primary); }
+  .tag-source { font-size: 15px; color: #4C4F55; margin-top: 1px; }
+
+  /* ===== SUBSECTION MARKERS ===== */
+  .sub-mark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 3px;
+  }
+  .sub-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+  .sub-label { font-size: 22px; color: var(--text-secondary); }
+
+  /* ===== SENTENCE SPLIT ===== */
+  .sentence-left, .sentence-right {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 18px;
+  }
+  .sentence-left {
+    font-size: 27px;
+    font-weight: 700;
+    line-height: 1.65;
+    border-right: 1px solid var(--divider);
+    position: relative;
+  }
+  .sentence-right {
+    font-size: 27px;
+    line-height: 1.7;
+  }
+
+  .sentence-source {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .toolbar-row {
+    position: absolute;
+    bottom: 8px;
+    left: 14px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .toolbar-btn {
+    padding: 3px 10px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .toolbar-btn:hover { background: #2c3038; }
+
+  /* ===== BACK OVERLAY ===== */
+  .back-overlay {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    cursor: pointer;
+    z-index: 20;
+    font-size: 26px;
+    color: var(--text-primary);
+    opacity: 0.6;
+    width: 20px;
+    text-align: center;
+    transition: opacity 0.15s;
+  }
+  .back-overlay:hover { opacity: 1; }
+
+  /* ===== CHAR INFO GRID ===== */
+  .char-info-row {
+    display: flex;
+    gap: 14px;
+    font-size: 24px;
+    color: var(--text-secondary);
+    padding: 0 14px;
+  }
+  .char-info-row .val { color: var(--text-primary); }
+
+  /* ===== WORD UNDERLINES ===== */
+  .word-underline {
+    border-bottom: 2px solid var(--accent-teal);
+    cursor: pointer;
+    padding-bottom: 1px;
+  }
+  .word-underline:hover { background: rgba(50,233,225,0.08); }
+
+  /* ===== PINYIN FULL-SCREEN ===== */
+  .pinyin-fullscreen {
+    width: 1640px;
+    height: 348px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pinyin-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .pinyin-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ===== POEM LAYOUT ===== */
+  .poem-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 12px 20px;
+  }
+
+  .poem-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+
+  .poem-author {
+    font-size: 22px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .poem-text {
+    font-size: 28px;
+    color: var(--text-primary);
+    line-height: 1.8;
+    font-family: var(--font-kai);
+  }
+
+  /* ===== MULTI-PRON INDICATOR ===== */
+  .pron-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .pron-option {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+  }
+  .pron-option.active {
+    background: var(--primary);
+    color: #000;
+    font-weight: 500;
+  }
+  .pron-option:hover:not(.active) { background: #2c3038; }
+
+  /* ===== GESTURE AREA ===== */
+  .gesture-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 100%;
+    z-index: 15;
+    cursor: w-resize;
+  }
+
+  /* ===== PHRASE LEFT ===== */
+  .phrase-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== PAGE 1: 查词翻译首页 ===== -->
+<div id="page-home" class="page active">
+  <div class="home-header">
+    <div class="back-btn"></div>
+    <div class="tab-item" data-tab="search">查词翻译</div>
+    <div class="tab-item active" data-tab="history">历史记录</div>
+  </div>
+  <div class="home-content" id="history-content">
+    <div class="history-card" data-target="page-char-shan">山</div>
+    <div class="history-card" data-target="page-char-shan">和</div>
+    <div class="history-card" data-target="page-word-meili">美丽</div>
+    <div class="history-card" data-target="page-word-chaoyang">朝阳</div>
+    <div class="history-card" data-target="page-xiehouyu">断了线的风筝——没了影儿</div>
+    <div class="history-card" data-target="page-xiehouyu">一个和尚挑水吃，两个和尚扛水吃，三个和尚…</div>
+    <div class="history-card" data-target="page-poem-title">静夜思</div>
+    <div class="history-card" data-target="page-poem-single">床前明月光</div>
+    <div class="history-card" data-target="page-en-present">present</div>
+    <div class="history-card" data-target="page-en-long">Pneumonoultramicroscopicsilicovolcanoc…</div>
+    <div class="history-card" data-target="page-en-present">presen</div>
+    <div class="history-card" data-target="page-phrase">Make a contribution to</div>
+    <div class="history-card" data-target="page-pinyin-hao">a</div>
+    <div class="history-card" data-target="page-pinyin-hao">hǎo</div>
+    <div class="history-card" data-target="page-pinyin-notone">zhuang</div>
+    <div class="history-card" data-target="page-pinyin-word">měi lì</div>
+    <div class="history-card" data-target="page-en-short">This pen can help me learn English and…</div>
+    <div class="history-card" data-target="page-en-long-sentence">The Power of Small Changes…</div>
+    <div class="history-card" data-target="page-cn-short">这支笔可以帮助我学习英文和中文。</div>
+    <div class="history-card" data-target="page-poem-multi">床前明月光，疑是地上霜。举头望明月，低头…</div>
+  </div>
+</div>
+
+<!-- ===== PAGE 2: 查汉字-山-分屏设计 ===== -->
+<div id="page-char-shan" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px; padding: 8px 14px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div class="char-box">山</div>
+        <div style="flex: 1;">
+          <div style="font-size: 28px; color: white; font-family: var(--font-en);">shān</div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+            <span style="font-size: 24px; color: var(--text-primary);">拼读</span>
+            <div class="play-btn"></div>
+            <div class="play-btn"></div>
+          </div>
+          <div class="play-btn" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+      <div class="char-info-row" style="margin-top: 8px;">
+        结构：<span class="val">独立体</span>&emsp;部首：<span class="val">山</span>
+      </div>
+      <div class="char-info-row" style="margin-top: 2px;">
+        笔画：<span class="val">3</span>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">组词</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon" title="收藏">&#9734;</div>
+        <div class="sidebar-icon cyan" title="列表">&#9776;</div>
+        <div class="sidebar-icon green" title="全/双屏">&#8862;</div>
+        <div class="sidebar-icon" title="键盘录入">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="def-text">
+          <p>1.名词。地面上由土、石形成的巨大而高耸的部分：村子四周都是~。~峰。~区。</p>
+          <p>2.名词。像山的东西: 冰~。~墙。</p>
+          <p>3.名词。指蚕簇: 蚕上~了。</p>
+          <p>4.名词。比喻巨大的声音:锣鼓敲得~响。</p>
+          <p>5.名词。姓。</p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+        <div class="more-link" style="margin-top: 4px;">更多词典的释义</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="tag-row">
+          <div class="tag-pill">
+            <div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">组词</span></div>
+            <div class="tag-source">来源:《学生现代汉语规范词典》</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">源</div>
+          <div class="section-title">字源</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label" style="color: var(--accent-green);">字形</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">字义</span></div>
+      </div>
+
+      <div class="def-text" style="margin-top: 4px; text-indent: 2em;">
+        山，本意是地面上由土或者石头构成的巨大、高耸的部分。东晋有一个叫谢安的人，非常有才干。他隐居在东山，不愿意做官。有人推举他做官，他上任了一个多月就不想干了。人们发愁，要是谢安不出来做官，百姓们可咋办呢？到了他四十多岁之后他才重新出来做官，人们管这个事情叫东山再起。
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">字族</span></div>
+        <div style="background: #FFFAEB; border-radius: 12px; padding: 10px 14px; margin-top: 6px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div style="background: #8FA506; border-radius: 6px; padding: 5px 8px; text-align: center; flex-shrink: 0;">
+              <div style="font-size: 40px; color: white; line-height: 1;">山</div>
+              <div style="font-size: 18px; color: #607000;">字族</div>
+            </div>
+            <div style="font-size: 24px; color: black; line-height: 1.5;">
+              山，可以作为声旁，组成新的汉字，这些汉字的读音一般和"山"相似或相关。
+            </div>
+          </div>
+          <div style="display: flex; gap: 14px; margin-top: 6px;">
+            <span style="font-size: 22px; color: var(--primary);">表音</span>
+            <span style="font-size: 22px; color: #333;">表意</span>
+            <span style="font-size: 18px; color: var(--primary); text-decoration: underline; cursor: pointer; margin-left: auto;">查看更多</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">文学拓展</span></div>
+        <div class="def-text" style="margin-top: 4px;">
+          <p style="font-weight: 700;">教材-对韵歌</p>
+          <p style="text-indent: 2em;">云对雨，雪对风，花对树，鸟对虫，山青对水秀，柳绿对桃红。</p>
+        </div>
+        <div class="def-text" style="margin-top: 8px;">
+          <p style="font-weight: 700;">高山流水</p>
+          <p style="text-indent: 2em;">伯牙是春秋战国时期著名的古琴演奏家。他的老师成连先生对他的演奏不太满意，便对伯牙说：我的老师长居东海蓬莱，我带你去找他吧，或许他能帮助你……</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">文化拓展</span></div>
+        <div class="def-text">
+          <p style="font-weight: 700;">山与中国文化</p>
+          <p style="text-indent: 2em;">作为自然景观的山与水，在中华文化发展过程中不断被赋予丰富的文化内涵，成为中华文化中耀眼的元素。而山或巍峨或险峻，或幽深或秀美的不同特质，对应着不同的文化意蕴……</p>
+        </div>
+        <div class="source-text">来源《汉字文化字典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">汉英释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p>1 (地面形成的高耸的部分) <span class="green-text">hill</span>; <span class="green-text">mountain</span></p>
+          <p>2 (形状像山的东西) <span class="green-text">anything resembling a mountain</span></p>
+          <p>3 (蚕簇) <span class="green-text">bushes in which silkworms spin cocoons</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">启</div>
+          <div class="section-title">启蒙</div>
+        </div>
+        <div style="background: #E7ECD4; border-radius: 20px; padding: 14px; margin-top: 6px; display: flex; align-items: center; gap: 18px; min-height: 130px;">
+          <div style="width: 90px; height: 90px; background: white; border-radius: 14px; border: 1px solid #CCB79F; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 56px; color: #C95F38; font-family: var(--font-kai);">山</span>
+          </div>
+          <div style="font-size: 40px; color: #C95F38; font-weight: 900;">shān</div>
+          <div style="display: flex; gap: 8px; margin-left: auto;">
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">字形</div>
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">笔顺</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 3: 查单词-多词性-present ===== -->
+<div id="page-en-present" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(145deg, #0d1a2e 0%, #0a1525 50%, #1a1822 100%);">
+          <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 140px; color: rgba(255,255,255,0.04); font-weight: 900; line-height: 1; pointer-events: none; font-family: var(--font-en);">Aa</div>
+          <div style="position: absolute; bottom: 60px; left: 30px; right: 20px;">
+            <div style="font-size: 48px; color: white; font-weight: 700; font-family: var(--font-en); line-height: 1.1;">present</div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+              <span style="font-size: 24px; color: var(--text-muted); font-family: var(--font-en);">/&#712;preznt/</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+              <div class="pron-tag active">英</div>
+              <div class="pron-tag">美</div>
+              <div class="play-btn" style="margin-left: 4px;"></div>
+              <div class="play-btn"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">例句</div>
+        <div class="nav-dot">词态变化</div>
+        <div class="nav-dot">短语</div>
+        <div class="nav-dot">派生</div>
+        <div class="nav-dot">近义</div>
+        <div class="nav-dot">谚语</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <!-- 简明 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">简</div>
+          <div class="section-title">简明</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="dim-text">adj.</span> 现在的；出席的；在场的</p>
+          <p><span class="dim-text">n.</span> 礼物；现在</p>
+          <p><span class="dim-text">v.</span> 提出；赠送；呈现</p>
+        </div>
+        <div class="source-text">来源《英汉简明词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 考试 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">考</div>
+          <div class="section-title">考试</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="dim-text">adj.</span> 现在的; 目前的; 出席; 在场</p>
+          <p><span class="dim-text">n.</span> 礼物; 礼品; 目前; 现在</p>
+          <p><span class="dim-text">v.</span> 把...交给; 颁发; 授予; 提出; 提交</p>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">考点解析</span></div>
+        <div class="def-text">
+          <p>【搭配】 at present 目前 / present sb. with sth. 向某人赠送某物</p>
+          <p>【语法点】 present作形容词时，注意其位置：</p>
+          <p>· 放在名词前表"现在的"：the present situation</p>
+          <p>· 放在名词后表"在场的"：the people present</p>
+        </div>
+        <div class="source-text">来源《中考词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 高阶 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">高</div>
+          <div class="section-title">高阶</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="dim-text">adj.</span> 1. [only before noun] existing or happening now 现存的；当前的</p>
+          <p><span class="dim-text">adj.</span> 2. [not before noun] ~ (at sth) (of a person) being in a particular place （人）在场的</p>
+          <p><span class="dim-text">n.</span> 1. a thing that you give to sb as a gift 礼物；赠品</p>
+          <p><span class="dim-text">v.</span> 1. ~ sth (to sb) | ~ sb with sth to give sth to sb, especially formally at a ceremony 把...交给；颁发</p>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">例句</span></div>
+        <div class="def-text">
+          <p>The present situation is very different. <span class="dim-text">目前的情况大不相同。</span></p>
+          <p>He gave me a birthday present. <span class="dim-text">他给了我一份生日礼物。</span></p>
+        </div>
+        <div class="source-text">来源《牛津高阶英汉双解词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="tag-row">
+          <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">词态变化</span></div><div class="tag-source">presented / presenting / presents</div></div>
+          <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">短语</span></div><div class="tag-source">at present / present sth to sb</div></div>
+          <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">派生</span></div><div class="tag-source">presentation / presently</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 4: 查词语-单音词-美丽 ===== -->
+<div id="page-word-meili" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 260px; justify-content: center; padding: 0 20px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="font-size: 52px; color: var(--primary); font-weight: 700; line-height: 1;">美丽</div>
+      <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+        <span style="font-size: 26px; color: var(--text-primary);">m&#x11B;i l&igrave;</span>
+        <div class="play-btn"></div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">反义</div>
+        <div class="nav-dot">备注</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="def-text">好看，看了感到愉悦的：<span class="dim-text">~动人｜~的桂林山水。</span></div>
+        <div class="more-link" style="margin-top: 3px;">更多词典的释义</div>
+        <div class="source-text">来源《学生现代汉语规范词典》</div>
+      </div>
+
+      <div class="tag-row" style="margin-top: 6px;">
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">搭配</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">例句</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">同义</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">近义</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">翻译</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">辨析</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">备注</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">古代释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">好看。《国策·齐策》："城北徐公，齐国之美丽者也。"</div>
+        <div class="source-text">来源《大辞海·语词卷》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">英</div>
+          <div class="section-title">汉英释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="green-text">beautiful</span>; <span class="green-text">beauty</span>; <span class="green-text">pretty</span>; <span class="green-text">fair</span>:</p>
+          <p>~的花朵 <span class="dim-text">beautiful flowers;</span></p>
+          <p>~富饶的国家 <span class="dim-text">a beautiful and richly-endowed country;</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 5: 查词语-多音词-朝阳 ===== -->
+<div id="page-word-chaoyang" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 280px; justify-content: center; padding: 0 20px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="font-size: 52px; color: var(--primary); font-weight: 700; line-height: 1;">朝阳</div>
+      <div class="pron-selector" style="margin-top: 10px;">
+        <div class="pron-option active">zh&#257;o y&aacute;ng</div>
+        <div class="pron-option">ch&aacute;o y&aacute;ng</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+        <div class="play-btn"></div>
+        <span style="font-size: 20px; color: var(--text-secondary);">多音词</span>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">例句</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <!-- 朝阳 zhāo yáng -->
+      <div class="section" id="chaoyang-def1">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <span style="background: var(--primary); color: #000; border-radius: 4px; padding: 1px 8px; font-size: 18px; font-weight: 500;">读音一</span>
+          <span style="font-size: 22px; color: var(--text-muted);">zh&#257;o y&aacute;ng</span>
+        </div>
+        <div class="def-text">
+          <p>初升的太阳：<span class="dim-text">~东升。一轮~冉冉升起。</span></p>
+        </div>
+        <div class="source-text">来源《学生现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 朝阳 cháo yáng -->
+      <div class="section" id="chaoyang-def2">
+        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+          <span style="background: var(--bg-secondary); color: var(--text-primary); border-radius: 4px; padding: 1px 8px; font-size: 18px;">读音二</span>
+          <span style="font-size: 22px; color: var(--text-muted);">ch&aacute;o y&aacute;ng</span>
+        </div>
+        <div class="def-text">
+          <p>向着太阳；面向南方：<span class="dim-text">~的房间。~坡。</span></p>
+        </div>
+        <div class="source-text">来源《学生现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">英</div>
+          <div class="section-title">汉英释义</div>
+        </div>
+        <div class="def-text">
+          <p>zh&#257;o y&aacute;ng: <span class="green-text">the rising sun; the morning sun</span></p>
+          <p>ch&aacute;o y&aacute;ng: <span class="green-text">facing the sun; sunny; south-facing</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 6: 查古诗文-标题-静夜思 ===== -->
+<div id="page-poem-title" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div class="poem-left" style="flex: 1;">
+        <div class="poem-title">静夜思</div>
+        <div class="poem-author">[唐] 李白</div>
+        <div class="poem-text">
+          床前明月光，<br>
+          疑是地上霜。<br>
+          举头望明月，<br>
+          低头思故乡。
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
+          <div class="play-btn"></div>
+          <span style="font-size: 20px; color: var(--text-secondary);">朗读</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">赏析</div>
+        <div class="nav-dot">作者</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">译</div>
+          <div class="section-title">译文</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>明亮的月光洒在床前的窗户纸上，好像地上泛起了一层白霜。</p>
+          <p>我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">注</div>
+          <div class="section-title">注释</div>
+        </div>
+        <div class="def-text">
+          <p><span style="color: var(--primary);">静夜思</span>：静静的夜里产生的思绪，即思乡之情。</p>
+          <p><span style="color: var(--primary);">床</span>：此诗中的"床"字，指井台。一说是指井上的围栏。</p>
+          <p><span style="color: var(--primary);">疑</span>：好像，如同。</p>
+          <p><span style="color: var(--primary);">举头</span>：抬头。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">赏</div>
+          <div class="section-title">赏析</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text" style="text-indent: 2em;">
+          这首诗是唐代诗人李白所作的一首五言古诗。此诗描写了秋日夜晚，旅居在外的诗人于屋内抬头望月而思念家乡的感受。诗中运用比喻、衬托等手法，表达客居思乡之情，语言清新朴素而韵味含蓄无穷……
+        </div>
+        <div class="source-text">来源《古诗文鉴赏辞典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">作</div>
+          <div class="section-title">作者</div>
+        </div>
+        <div class="def-text">
+          <p><span style="font-weight: 700;">李白</span>（701年—762年），字太白，号青莲居士，又号"谪仙人"。唐代伟大的浪漫主义诗人，被后人誉为"诗仙"。与杜甫并称为"李杜"。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 7: 查古诗文-诗句-单句 ===== -->
+<div id="page-poem-single" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div class="poem-left" style="flex: 1;">
+        <div style="font-size: 18px; color: var(--text-secondary); margin-bottom: 6px;">出自《静夜思》[唐] 李白</div>
+        <div style="font-size: 38px; color: var(--primary); font-weight: 700; font-family: var(--font-kai); line-height: 1.4;">
+          床前明月光
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
+          <div class="play-btn"></div>
+          <span style="font-size: 20px; color: var(--text-secondary);">朗读</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">全文</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">译</div>
+          <div class="section-title">句意</div>
+        </div>
+        <div class="def-text">
+          <p>明亮的月光洒在床前的窗户纸上。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">注</div>
+          <div class="section-title">注释</div>
+        </div>
+        <div class="def-text">
+          <p><span style="color: var(--primary);">床</span>：此处指井台，或是指井上的围栏。</p>
+          <p><span style="color: var(--primary);">明月光</span>：明亮的月光。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">全</div>
+          <div class="section-title">全文</div>
+        </div>
+        <div class="def-text" style="font-family: var(--font-kai);">
+          <p style="font-weight: 700;">静夜思</p>
+          <p style="color: var(--text-secondary); font-size: 20px;">[唐] 李白</p>
+          <p>床前明月光，疑是地上霜。</p>
+          <p>举头望明月，低头思故乡。</p>
+        </div>
+        <div class="source-text">来源《古诗文鉴赏辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 8: 查古诗文-诗句-多句 ===== -->
+<div id="page-poem-multi" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div class="poem-left" style="flex: 1;">
+        <div style="font-size: 18px; color: var(--text-secondary); margin-bottom: 6px;">出自《静夜思》[唐] 李白</div>
+        <div style="font-size: 34px; color: var(--primary); font-weight: 700; font-family: var(--font-kai); line-height: 1.5;">
+          床前明月光，<br>
+          疑是地上霜。<br>
+          举头望明月，<br>
+          低头思故乡。
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+          <div class="play-btn"></div>
+          <span style="font-size: 20px; color: var(--text-secondary);">朗读</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">赏析</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">译</div>
+          <div class="section-title">译文</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>明亮的月光洒在床前的窗户纸上，好像地上泛起了一层白霜。</p>
+          <p>我禁不住抬起头来，看那天窗外空中的一轮明月，不由得低头沉思，想起远方的家乡。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">注</div>
+          <div class="section-title">逐句注释</div>
+        </div>
+        <div class="def-text">
+          <p><span style="color: var(--primary);">床前明月光</span> ——明亮的月光洒在床前的窗户纸上。</p>
+          <p><span style="color: var(--primary);">疑是地上霜</span> ——好像地上泛起了一层白霜。</p>
+          <p><span style="color: var(--primary);">举头望明月</span> ——我禁不住抬起头来，看那天窗外空中的一轮明月。</p>
+          <p><span style="color: var(--primary);">低头思故乡</span> ——不由得低头沉思，想起远方的家乡。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">赏</div>
+          <div class="section-title">赏析</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text" style="text-indent: 2em;">
+          此诗描写了秋日夜晚，旅居在外的诗人于屋内抬头望月的感受。诗中运用比喻、衬托等手法，表达客居思乡之情，语言清新朴素而韵味含蓄无穷，历来广为传诵。
+        </div>
+        <div class="source-text">来源《古诗文鉴赏辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 9: 查词语-歇后语 ===== -->
+<div id="page-xiehouyu" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px; justify-content: center; padding: 0 20px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="font-size: 36px; color: var(--primary); font-weight: 700; line-height: 1.4;">
+        断了线的风筝<br>
+        <span style="font-size: 30px;">——没了影儿</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px;">
+        <div class="play-btn"></div>
+        <span style="font-size: 20px; color: var(--text-secondary);">朗读</span>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">释</div>
+          <div class="section-title">释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p style="margin-bottom: 6px;">歇后语。比喻人或物消失得无影无踪，找不到了。</p>
+          <p><span style="color: var(--primary);">断了线的风筝</span>：比喻失去联系或控制的人或事物。</p>
+          <p><span style="color: var(--primary);">没了影儿</span>：完全看不见了，无影无踪。</p>
+        </div>
+        <div class="source-text">来源《中华歇后语大辞典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">例</div>
+          <div class="section-title">例句</div>
+        </div>
+        <div class="def-text">
+          <p>他拿了钱就走了，像断了线的风筝——没了影儿，再也联系不上了。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">近</div>
+          <div class="section-title">相关歇后语</div>
+        </div>
+        <div class="def-text">
+          <p>泥牛入海——无消息</p>
+          <p>肉包子打狗——有去无回</p>
+          <p>石沉大海——没消息</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">英</div>
+          <div class="section-title">英文翻译</div>
+        </div>
+        <div class="def-text">
+          <p><span class="green-text">Like a kite with a broken string -- vanished without a trace.</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 10: 查拼音-带声调-hǎo ===== -->
+<div id="page-pinyin-hao" class="page">
+  <div class="pinyin-fullscreen">
+    <div class="pinyin-bg">
+      <svg width="1640" height="348" viewBox="0 0 1640 348" fill="none">
+        <rect width="1640" height="348" fill="url(#py-bg)"/>
+        <circle cx="200" cy="174" r="260" fill="rgba(8,200,165,0.06)"/>
+        <circle cx="820" cy="174" r="320" fill="rgba(236,151,9,0.05)"/>
+        <circle cx="1440" cy="174" r="240" fill="rgba(50,233,225,0.06)"/>
+        <defs>
+          <linearGradient id="py-bg" x1="0" y1="0" x2="1640" y2="348">
+            <stop offset="0%" stop-color="#0a1a12"/>
+            <stop offset="50%" stop-color="#0d1520"/>
+            <stop offset="100%" stop-color="#1a0d20"/>
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+    <div class="pinyin-content">
+      <!-- Tone mark display -->
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <span style="font-size: 20px; color: var(--text-secondary);">三声</span>
+        <div style="width: 60px; height: 30px; position: relative;">
+          <svg width="60" height="30" viewBox="0 0 60 30">
+            <path d="M5 5 Q15 28 30 25 Q45 22 55 5" stroke="#08C8A5" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Main pinyin display -->
+      <div style="display: flex; align-items: baseline; gap: 4px;">
+        <span style="font-size: 120px; color: var(--accent-green); font-weight: 700; font-family: var(--font-en); line-height: 1;">h</span>
+        <span style="font-size: 120px; color: var(--primary); font-weight: 700; font-family: var(--font-en); line-height: 1;">&agrave;o</span>
+      </div>
+
+      <!-- Labels -->
+      <div style="display: flex; align-items: center; gap: 30px; margin-top: 4px;">
+        <div style="text-align: center;">
+          <span style="font-size: 22px; color: var(--accent-green);">h</span>
+          <div style="font-size: 16px; color: var(--text-secondary); margin-top: 2px;">声母</div>
+        </div>
+        <div style="text-align: center;">
+          <span style="font-size: 22px; color: var(--primary);">ao</span>
+          <div style="font-size: 16px; color: var(--text-secondary); margin-top: 2px;">韵母</div>
+        </div>
+      </div>
+
+      <!-- Matching characters -->
+      <div style="display: flex; gap: 12px; margin-top: 10px;">
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+          <span style="font-size: 36px; color: var(--text-primary); font-family: var(--font-kai);">好</span>
+        </div>
+        <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+          <span style="font-size: 36px; color: var(--text-primary); font-family: var(--font-kai);">郝</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Play button -->
+    <div style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;">
+      <div class="play-btn" style="width: 36px; height: 36px;"></div>
+      <span style="font-size: 20px; color: var(--text-secondary);">播放</span>
+    </div>
+
+    <div class="sidebar-icons" style="right: 8px; top: 8px;">
+      <div class="sidebar-icon">&#9734;</div>
+      <div class="sidebar-icon cyan">&#9776;</div>
+      <div class="sidebar-icon green">&#8862;</div>
+      <div class="sidebar-icon">&#9000;</div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 11: 查单词-超长单词 ===== -->
+<div id="page-en-long" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(145deg, #0d1a2e 0%, #0a1525 50%, #1a1822 100%);">
+          <div style="position: absolute; top: 15px; left: 20px; right: 20px; bottom: 15px; display: flex; flex-direction: column; justify-content: center;">
+            <div style="font-size: 24px; color: white; font-weight: 700; font-family: var(--font-en); line-height: 1.3; word-break: break-all;">
+              Pneumonoultramicro&shy;scopicsilico&shy;volcanoconiosis
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
+              <span style="font-size: 16px; color: var(--text-muted); font-family: var(--font-en); word-break: break-all;">/&#716;nju&#720;m&#601;n&#601;&#650;&#716;&#652;ltr&#601;&#716;ma&#618;kr&#601;&#716;sk&#594;p&#618;k&#716;s&#618;l&#618;k&#601;&#650;v&#594;l&#716;ke&#618;n&#601;&#650;k&#601;&#650;ni&#712;&#601;&#650;s&#618;s/</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+              <div class="pron-tag active">英</div>
+              <div class="pron-tag">美</div>
+              <div class="play-btn" style="margin-left: 4px;"></div>
+              <div class="play-btn"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">词源</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">简</div>
+          <div class="section-title">简明</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="dim-text">n.</span> 硅肺病；矽肺病（一种由长期吸入细小硅尘引起的肺部疾病）</p>
+        </div>
+        <div class="source-text">来源《英汉简明词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">源</div>
+          <div class="section-title">词源</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>这个单词是英语中最长的单词之一，共45个字母。</p>
+          <p style="margin-top: 4px;">词根构成：</p>
+          <p><span class="green-text">pneumono-</span> (肺) + <span class="green-text">ultra-</span> (超) + <span class="green-text">micro-</span> (微) + <span class="green-text">scopic</span> (可见的) + <span class="green-text">silico-</span> (硅) + <span class="green-text">volcano-</span> (火山) + <span class="green-text">coniosis</span> (尘肺病)</p>
+          <p style="margin-top: 4px;">字面意思为：由超微细火山硅尘引起的肺部疾病。</p>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">百</div>
+          <div class="section-title">百科</div>
+        </div>
+        <div class="def-text" style="text-indent: 2em;">
+          硅肺病是一种职业性肺部疾病，由长期吸入大量含有游离二氧化硅（石英）的粉尘引起，属于尘肺病的一种。该病在矿工、石匠等职业群体中较为常见。
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 12: 查短语-Make a contribution to ===== -->
+<div id="page-phrase" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div class="phrase-left" style="flex: 1;">
+        <div style="font-size: 38px; color: var(--primary); font-weight: 700; font-family: var(--font-en); line-height: 1.2;">
+          Make a contribution to
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap;">
+          <span style="font-size: 22px; color: var(--text-muted); font-family: var(--font-en);">/me&#618;k &#601; &#716;k&#594;ntr&#618;&#712;bju&#720;&#643;n tu&#720;/</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+          <div class="pron-tag active">英</div>
+          <div class="pron-tag">美</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+          <div class="play-btn"></div>
+          <div class="mic-btn" title="跟读">&#127908;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">例句</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">释</div>
+          <div class="section-title">释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>对...做出贡献；为...做贡献</p>
+        </div>
+        <div class="source-text">来源《英汉简明词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">例</div>
+          <div class="section-title">例句</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p><span class="green-text">Everyone can make a contribution to protecting the environment.</span></p>
+          <p class="dim-text">每个人都可以为保护环境做出贡献。</p>
+        </div>
+        <div class="def-text" style="margin-top: 8px;">
+          <p><span class="green-text">She has made a great contribution to the development of education.</span></p>
+          <p class="dim-text">她为教育事业的发展做出了巨大贡献。</p>
+        </div>
+        <div class="source-text">来源《英汉简明词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">近</div>
+          <div class="section-title">相关短语</div>
+        </div>
+        <div class="def-text">
+          <p><span class="green-text">contribute to</span> <span class="dim-text">贡献；有助于</span></p>
+          <p><span class="green-text">make contributions to</span> <span class="dim-text">对...做出贡献（复数形式）</span></p>
+          <p><span class="green-text">in contribution to</span> <span class="dim-text">作为对...的贡献</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 13: 查英语句子-短句 ===== -->
+<div id="page-en-short" class="page">
+  <div class="split-screen">
+    <div class="sentence-left">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+        <div class="play-btn"></div>
+      </div>
+      <p>
+        <span class="word-underline">This</span>
+        <span class="word-underline">pen</span>
+        <span class="word-underline">can</span>
+        <span class="word-underline">help</span>
+        <span class="word-underline">me</span>
+        <span class="word-underline">learn</span>
+        <span class="word-underline">English</span>
+        <span>and</span>
+        <span class="word-underline">Chinese</span>.
+      </p>
+      <div class="toolbar-row">
+        <div class="toolbar-btn">语法</div>
+        <div class="play-btn" style="width: 30px; height: 30px;"></div>
+      </div>
+    </div>
+    <div class="sentence-right">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+        <div class="play-btn"></div>
+      </div>
+      <p>这支笔可以帮助我学习英文和中文。</p>
+      <div class="sentence-source">以上句子由机器智能翻译</div>
+    </div>
+    <div class="sidebar-icons" style="right: 4px;">
+      <div class="sidebar-icon">&#9734;</div>
+      <div class="sidebar-icon cyan">&#9776;</div>
+      <div class="sidebar-icon green">&#8862;</div>
+      <div class="sidebar-icon">&#9000;</div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 14: 查中文句子-短句 ===== -->
+<div id="page-cn-short" class="page">
+  <div class="split-screen">
+    <div class="sentence-left" style="color: var(--primary);">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+        <div class="play-btn"></div>
+      </div>
+      <p>这支笔可以帮助我学习英文和中文。</p>
+      <div class="toolbar-row">
+        <div class="play-btn" style="width: 30px; height: 30px;"></div>
+      </div>
+    </div>
+    <div class="sentence-right">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 6px;">
+        <div class="play-btn"></div>
+      </div>
+      <p><span class="green-text">This pen can help me learn English and Chinese.</span></p>
+      <div class="sentence-source">以上句子由机器智能翻译</div>
+    </div>
+    <div class="sidebar-icons" style="right: 4px;">
+      <div class="sidebar-icon">&#9734;</div>
+      <div class="sidebar-icon cyan">&#9776;</div>
+      <div class="sidebar-icon green">&#8862;</div>
+      <div class="sidebar-icon">&#9000;</div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 15: 查英语句子-长句-分屏 ===== -->
+<div id="page-en-long-sentence" class="page">
+  <div class="split-screen">
+    <div class="sentence-left">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+        <div class="play-btn"></div>
+      </div>
+      <p style="text-indent: 2em;">The Power of Small Changes. Many people believe that they need to do something extraordinary to change the world. However, the truth is that small actions can make a big difference. For example, reducing the use of plastic bags or turning off the lights when leaving a room may seem like small things, but they are essential for protecting our environment.</p>
+      <p>In our daily lives, we can also help others with simple acts of kindness. A warm smile or a helpful hand can brighten someone's day. As the saying goes, "Great things are done by a series of small things brought together." If everyone contributes a little effort, our world will become a much better place to live in.</p>
+      <div class="toolbar-row">
+        <div class="toolbar-btn">语法</div>
+        <div class="play-btn" style="width: 30px; height: 30px;"></div>
+      </div>
+    </div>
+    <div class="sentence-right">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+        <div class="play-btn"></div>
+      </div>
+      <p style="text-indent: 2em;">微小改变的力量。许多人认为，他们需要做一些非凡的事情才能改变世界。然而，事实是微小的行动也能产生巨大的影响。例如，减少塑料袋的使用或离开房间时随手关灯，这些看似是小事，但对于保护我们的环境至关重要。</p>
+      <p>在日常生活中，我们也可以通过简单的善举来帮助他人。一个温暖的微笑或一次援手都能点亮他人的一天。正如俗话所说："伟大的成就由一系列小事汇聚而成。" 如果每个人都贡献一点点努力，我们的世界将变成一个更美好的宜居之地。</p>
+      <div class="sentence-source">以上句子由机器智能翻译</div>
+    </div>
+    <div class="sidebar-icons" style="right: 4px;">
+      <div class="sidebar-icon">&#9734;</div>
+      <div class="sidebar-icon cyan">&#9776;</div>
+      <div class="sidebar-icon green">&#8862;</div>
+      <div class="sidebar-icon">&#9000;</div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 16: 查拼音+单词 ===== -->
+<div id="page-pinyin-word" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(145deg, #0a1a12 0%, #0d1520 50%, #1a0d20 100%);">
+          <!-- Background circles -->
+          <svg style="position: absolute; inset: 0;" width="470" height="348" viewBox="0 0 470 348" fill="none">
+            <circle cx="120" cy="174" r="160" fill="rgba(8,200,165,0.05)"/>
+            <circle cx="350" cy="174" r="140" fill="rgba(236,151,9,0.04)"/>
+          </svg>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+            <!-- Pinyin display -->
+            <div style="display: flex; align-items: baseline; gap: 8px; justify-content: center;">
+              <span style="font-size: 80px; color: var(--accent-green); font-weight: 700; font-family: var(--font-en); line-height: 1;">m&#x11B;i</span>
+              <span style="font-size: 80px; color: var(--primary); font-weight: 700; font-family: var(--font-en); line-height: 1;">l&igrave;</span>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: center;">
+              <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 36px; color: var(--text-primary); font-family: var(--font-kai);">美</span>
+              </div>
+              <div style="width: 60px; height: 60px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 36px; color: var(--text-primary); font-family: var(--font-kai);">丽</span>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 12px; justify-content: center;">
+              <div class="play-btn"></div>
+              <span style="font-size: 18px; color: var(--text-secondary);">播放</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot" style="font-size: 16px; color: var(--text-muted);">拼音</div>
+        <div class="nav-dot active">释义</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">释</div>
+          <div class="section-title">释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>好看，看了感到愉悦的：<span class="dim-text">~动人｜~的桂林山水。</span></p>
+        </div>
+        <div class="more-link" style="margin-top: 3px;">更多词典的释义</div>
+        <div class="source-text">来源《学生现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="tag-row">
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">搭配</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">例句</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">翻译</span></div><div class="tag-source">来源:《世纪汉英大辞典》</div></div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">英</div>
+          <div class="section-title">汉英释义</div>
+        </div>
+        <div class="def-text">
+          <p><span class="green-text">beautiful</span>; <span class="green-text">beauty</span>; <span class="green-text">pretty</span>; <span class="green-text">fair</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<!-- ===== PAGE 17: 查拼音+翻译-不带声调 ===== -->
+<div id="page-pinyin-notone" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <div class="gesture-area"></div>
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(145deg, #0a1a12 0%, #0d1520 50%, #1a0d20 100%);">
+          <svg style="position: absolute; inset: 0;" width="470" height="348" viewBox="0 0 470 348" fill="none">
+            <circle cx="235" cy="174" r="200" fill="rgba(236,151,9,0.04)"/>
+          </svg>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+            <div style="font-size: 90px; color: var(--text-primary); font-weight: 700; font-family: var(--font-en); line-height: 1;">zhuang</div>
+            <div style="font-size: 20px; color: var(--text-secondary); margin-top: 8px;">无声调 - 多个匹配</div>
+            <div style="display: flex; gap: 10px; margin-top: 14px; justify-content: center; flex-wrap: wrap;">
+              <div style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 30px; color: var(--text-primary); font-family: var(--font-kai);">装</span>
+              </div>
+              <div style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 30px; color: var(--text-primary); font-family: var(--font-kai);">庄</span>
+              </div>
+              <div style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 30px; color: var(--text-primary); font-family: var(--font-kai);">壮</span>
+              </div>
+              <div style="width: 50px; height: 50px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05);">
+                <span style="font-size: 30px; color: var(--text-primary); font-family: var(--font-kai);">撞</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot" style="font-size: 16px; color: var(--text-muted);">拼音</div>
+        <div class="nav-dot active">释义</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon">&#9734;</div>
+        <div class="sidebar-icon cyan">&#9776;</div>
+        <div class="sidebar-icon green">&#8862;</div>
+        <div class="sidebar-icon">&#9000;</div>
+      </div>
+
+      <!-- 装 zhuāng -->
+      <div class="section">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 32px; color: var(--primary); font-weight: 700; font-family: var(--font-kai);">装</span>
+          <span style="font-size: 22px; color: var(--text-muted);">zhu&#257;ng</span>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>1. 穿着的衣物：<span class="dim-text">服~。便~。</span></p>
+          <p>2. 把东西放进器物内：<span class="dim-text">~箱。~货。</span></p>
+          <p>3. 假装：<span class="dim-text">~模作样。</span></p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 庄 zhuāng -->
+      <div class="section">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 32px; color: var(--primary); font-weight: 700; font-family: var(--font-kai);">庄</span>
+          <span style="font-size: 22px; color: var(--text-muted);">zhu&#257;ng</span>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>1. 村落：<span class="dim-text">村~。~户。</span></p>
+          <p>2. 封建社会里君主、贵族等所占有的成片土地：<span class="dim-text">皇~。~园。</span></p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 壮 zhuàng -->
+      <div class="section">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 32px; color: var(--primary); font-weight: 700; font-family: var(--font-kai);">壮</span>
+          <span style="font-size: 22px; color: var(--text-muted);">zhu&agrave;ng</span>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>1. 大；有力：<span class="dim-text">强~。~志。</span></p>
+          <p>2. 增加勇气或力量：<span class="dim-text">~胆。以~声势。</span></p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 撞 zhuàng -->
+      <div class="section">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span style="font-size: 32px; color: var(--primary); font-weight: 700; font-family: var(--font-kai);">撞</span>
+          <span style="font-size: 22px; color: var(--text-muted);">zhu&agrave;ng</span>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="def-text">
+          <p>1. 碰；冲击：<span class="dim-text">~车。~墙。</span></p>
+          <p>2. 碰见；遇见：<span class="dim-text">~见。</span></p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home', true)">&lsaquo;</div>
+</div>
+
+<script>
+// ===== PAGE NAVIGATION =====
+let currentPage = 'page-home';
+
+function showPage(id, isBack) {
+  if (id === currentPage) return;
+  const oldEl = document.getElementById(currentPage);
+  const newEl = document.getElementById(id);
+  if (!newEl) return;
+
+  // Hide old page
+  if (oldEl) {
+    oldEl.classList.remove('active', 'fade-in');
+    oldEl.style.display = 'none';
+    oldEl.style.opacity = '0';
+  }
+
+  // Show new page with animation
+  newEl.style.display = 'flex';
+  newEl.style.opacity = '0';
+  newEl.classList.add('active');
+
+  // Apply appropriate animation direction
+  newEl.style.animation = 'none';
+  newEl.offsetHeight; // trigger reflow
+  newEl.style.animation = isBack ? 'fadeInBack 0.2s var(--ease-out) forwards' : 'fadeIn 0.2s var(--ease-out) forwards';
+
+  // Reset scroll positions
+  newEl.querySelectorAll('.right-panel, .sentence-left, .sentence-right').forEach(s => s.scrollTop = 0);
+
+  currentPage = id;
+}
+
+// ===== HISTORY CARD CLICKS =====
+document.querySelectorAll('.history-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const target = card.getAttribute('data-target');
+    if (target) showPage(target);
+  });
+});
+
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab-item').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+// ===== NAV DOT CLICKS =====
+document.querySelectorAll('.right-nav').forEach(nav => {
+  nav.querySelectorAll('.nav-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      nav.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+});
+
+// ===== PRONUNCIATION OPTION CLICKS =====
+document.querySelectorAll('.pron-selector').forEach(selector => {
+  selector.querySelectorAll('.pron-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      selector.querySelectorAll('.pron-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+});
+
+// ===== PRON TAG CLICKS =====
+document.querySelectorAll('.left-panel').forEach(panel => {
+  const tags = panel.querySelectorAll('.pron-tag');
+  tags.forEach(tag => {
+    tag.addEventListener('click', () => {
+      tags.forEach(t => t.classList.remove('active'));
+      tag.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
