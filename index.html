@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1640, height=348, initial-scale=1.0">
+<title>T40 Pro 查词翻译 - 分屏设计Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100;300;400;500;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #EC9709;
+    --bg-dark: #000000;
+    --bg-card: #16181C;
+    --bg-card-hover: #1e2127;
+    --text-primary: #CFD6E2;
+    --text-secondary: #7B8396;
+    --text-muted: #959CAA;
+    --text-dim: rgba(207,214,226,0.7);
+    --accent-green: #08C8A5;
+    --accent-cyan: #86F0FD;
+    --accent-teal: #32E9E1;
+    --divider: #2A2D35;
+    --font: 'Noto Sans SC', sans-serif;
+  }
+
+  html, body {
+    width: 1640px;
+    height: 348px;
+    overflow: hidden;
+    font-family: var(--font);
+    background: var(--bg-dark);
+    color: var(--text-primary);
+  }
+
+  .page {
+    width: 1640px;
+    height: 348px;
+    position: absolute;
+    top: 0; left: 0;
+    display: none;
+    overflow: hidden;
+    background: var(--bg-dark);
+  }
+  .page.active { display: flex; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3a3d45; border-radius: 2px; }
+
+  /* ===== HOME PAGE ===== */
+  #page-home { flex-direction: column; }
+
+  .home-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 24px;
+    gap: 28px;
+    flex-shrink: 0;
+    height: 50px;
+  }
+
+  .back-btn {
+    cursor: pointer;
+    font-size: 22px;
+    color: var(--text-primary);
+    opacity: 0.7;
+    width: 15px;
+  }
+  .back-btn::before { content: '‹'; font-size: 28px; }
+
+  .tab-item {
+    font-size: 24px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .tab-item.active {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .home-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 14px;
+    padding: 0 76px 14px;
+    overflow-y: auto;
+    align-content: start;
+  }
+
+  .history-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 24px;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+  .history-card:hover { background: var(--bg-card-hover); }
+
+  /* ===== SPLIT SCREEN ===== */
+  .split-screen {
+    display: flex;
+    width: 1640px;
+    height: 348px;
+    position: relative;
+  }
+
+  .left-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .left-divider {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--divider);
+  }
+
+  .right-panel {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    padding: 8px 22px 16px 22px;
+  }
+
+  /* Sidebar icons */
+  .sidebar-icons {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    z-index: 10;
+  }
+
+  .sidebar-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .sidebar-icon:hover { background: rgba(255,255,255,0.06); }
+  .sidebar-icon.green { color: var(--accent-green); }
+  .sidebar-icon.cyan { color: var(--accent-cyan); }
+
+  /* Right nav dots */
+  .right-nav {
+    position: absolute;
+    right: 52px;
+    top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    z-index: 5;
+  }
+  .nav-dot {
+    font-size: 20px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 1px 0;
+    white-space: nowrap;
+  }
+  .nav-dot.active { color: var(--accent-green); }
+
+  /* Character display */
+  .char-box {
+    width: 110px;
+    height: 110px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 68px;
+    font-weight: 900;
+    font-family: 'KaiTi', 'STKaiti', serif;
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .char-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+
+  .play-btn {
+    width: 26px; height: 26px;
+    background: #23272E;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .play-btn::after {
+    content: '';
+    width: 0; height: 0;
+    border-left: 7px solid var(--text-primary);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+
+  /* Content sections */
+  .section { margin-bottom: 10px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .section-icon {
+    width: 26px; height: 22px;
+    background: linear-gradient(143deg, #F39B00 34%, #E23700 91%);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    font-weight: 500;
+  }
+
+  .section-title {
+    font-size: 22px;
+    color: var(--text-primary);
+  }
+
+  .source-text {
+    font-size: 17px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+
+  .def-text {
+    font-size: 24px;
+    color: var(--text-primary);
+    line-height: 1.7;
+  }
+
+  .dim-text { color: var(--text-dim); }
+  .green-text { color: var(--accent-teal); }
+
+  .more-link {
+    font-size: 22px;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .divider-line {
+    height: 1px;
+    background: var(--divider);
+    margin: 8px 0;
+  }
+
+  /* Tag pills */
+  .tag-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+
+  .tag-pill {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    min-width: 180px;
+  }
+  .tag-pill:hover { background: var(--bg-card-hover); }
+
+  .tag-pill-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  .tag-label { font-size: 20px; color: var(--text-primary); }
+  .tag-source { font-size: 15px; color: #4C4F55; margin-top: 1px; }
+
+  /* Subsection markers */
+  .sub-mark {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 3px;
+  }
+  .sub-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+  .sub-label { font-size: 22px; color: var(--text-secondary); }
+
+  /* Sentence split */
+  .sentence-left, .sentence-right {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 18px;
+  }
+  .sentence-left {
+    font-size: 27px;
+    font-weight: 700;
+    line-height: 1.65;
+  }
+  .sentence-right {
+    font-size: 27px;
+    line-height: 1.7;
+  }
+
+  .sentence-source {
+    font-size: 18px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .toolbar-row {
+    position: absolute;
+    bottom: 8px;
+    left: 14px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .toolbar-btn {
+    padding: 3px 10px;
+    background: #23272E;
+    border-radius: 4px;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+  }
+
+  /* Back overlay */
+  .back-overlay {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    cursor: pointer;
+    z-index: 20;
+    font-size: 26px;
+    color: var(--text-primary);
+    opacity: 0.6;
+    width: 20px;
+    text-align: center;
+  }
+  .back-overlay:hover { opacity: 1; }
+
+  /* Char info grid */
+  .char-info-row {
+    display: flex;
+    gap: 14px;
+    font-size: 24px;
+    color: var(--text-secondary);
+    padding: 0 14px;
+  }
+  .char-info-row .val { color: var(--text-primary); }
+</style>
+</head>
+<body>
+
+<!-- ===== PAGE: 查词翻译首页 ===== -->
+<div id="page-home" class="page active">
+  <div class="home-header">
+    <div class="back-btn"></div>
+    <div class="tab-item" data-tab="search">查词翻译</div>
+    <div class="tab-item active" data-tab="history">历史记录</div>
+  </div>
+  <div class="home-content">
+    <div class="history-card" onclick="showPage('page-char')">山</div>
+    <div class="history-card" onclick="showPage('page-char')">和</div>
+    <div class="history-card" onclick="showPage('page-word')">美丽</div>
+    <div class="history-card" onclick="showPage('page-word')">朝阳</div>
+    <div class="history-card" onclick="showPage('page-char')">断了线的风筝——没了影儿</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">一个和尚挑水吃，两个和尚扛水吃，三个和尚…</div>
+    <div class="history-card" onclick="showPage('page-char')">静夜思</div>
+    <div class="history-card" onclick="showPage('page-char')">床前明月光</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">床前明月光，疑是地上霜。举头望明月，低头…</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">静夜思[唐]李白床前明月光，疑是地上霜。举…</div>
+    <div class="history-card" onclick="showPage('page-en-word')">present</div>
+    <div class="history-card" onclick="showPage('page-en-word')">Pneumonoultramicroscopicsilicovolcanoc…</div>
+    <div class="history-card" onclick="showPage('page-en-word')">presen</div>
+    <div class="history-card" onclick="showPage('page-en-word')">Make a contribution to</div>
+    <div class="history-card" onclick="showPage('page-en-word')">a</div>
+    <div class="history-card" onclick="showPage('page-en-word')">hǎo</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">zhuang</div>
+    <div class="history-card" onclick="showPage('page-en-word')">měi  lì</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">This pen can help me learn English and…</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">The Power of Small Changes。Many people…</div>
+    <div class="history-card" onclick="showPage('page-sentence-en')">这支笔可以帮助我学习英文和中文。</div>
+  </div>
+</div>
+
+<!-- ===== PAGE: 查汉字-山-分屏 ===== -->
+<div id="page-char" class="page">
+  <div class="split-screen">
+    <!-- Left: character fixed area -->
+    <div class="left-panel" style="width: 470px; padding: 8px 14px;">
+      <div class="left-divider"></div>
+      <div style="display: flex; gap: 12px; align-items: flex-start;">
+        <div class="char-box" style="color: var(--primary); background: #1a1d22; border: 2px solid #2a2d35;">山</div>
+        <div style="flex: 1;">
+          <div style="font-size: 28px; color: white; font-family: 'Noto Sans', sans-serif;">shān</div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+            <span style="font-size: 24px; color: var(--text-primary);">拼读</span>
+            <div class="play-btn"></div>
+            <div class="play-btn"></div>
+          </div>
+          <div class="play-btn" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+      <div class="char-info-row" style="margin-top: 8px;">
+        结构：<span class="val">独立体</span>&emsp;部首：<span class="val">山</span>
+      </div>
+      <div class="char-info-row" style="margin-top: 2px;">
+        笔画：<span class="val">3</span>
+      </div>
+    </div>
+
+    <!-- Right: scrollable content -->
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">组词</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon" style="font-size: 12px;">☆</div>
+        <div class="sidebar-icon cyan" style="font-size: 13px;">☰</div>
+        <div class="sidebar-icon green" style="font-size: 13px;">⊞</div>
+        <div class="sidebar-icon" style="font-size: 12px;">⌨</div>
+      </div>
+
+      <div class="section">
+        <div class="def-text">
+          <p>1.名词。地面上由土、石形成的巨大而高耸的部分：村子四周都是~。~峰。~区。</p>
+          <p>2.名词。像山的东西: 冰~。~墙。</p>
+          <p>3.名词。指蚕簇: 蚕上~了。</p>
+          <p>4.名词。比喻巨大的声音:锣鼓敲得~响。</p>
+          <p>5.名词。姓。</p>
+        </div>
+        <div class="source-text">来源《现代汉语规范词典》</div>
+        <div class="more-link" style="margin-top: 4px;">更多词典的释义</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="tag-row">
+          <div class="tag-pill">
+            <div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">组词</span></div>
+            <div class="tag-source">来源:《学生现代汉语规范词典》</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 字源 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">源</div>
+          <div class="section-title">字源</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label" style="color: var(--accent-green);">字形</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">字义</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">字族</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">文学拓展</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">文化拓展</span></div>
+      </div>
+
+      <div class="def-text" style="margin-top: 4px; text-indent: 2em;">
+        山，本意是地面上由土或者石头构成的巨大、高耸的部分。东晋有一个叫谢安的人，非常有才干。他隐居在东山，不愿意做官。有人推举他做官，他上任了一个多月就不想干了。人们发愁，要是谢安不出来做官，百姓们可咋办呢？到了他四十多岁之后他才重新出来做官，人们管这个事情叫东山再起。
+      </div>
+
+      <div style="background: #FFFAEB; border-radius: 12px; padding: 10px 14px; margin-top: 8px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <div style="background: #8FA506; border-radius: 6px; padding: 5px 8px; text-align: center; flex-shrink: 0;">
+            <div style="font-size: 40px; color: white; line-height: 1;">山</div>
+            <div style="font-size: 18px; color: #607000;">字族</div>
+          </div>
+          <div style="font-size: 24px; color: black; line-height: 1.5;">
+            山，可以作为声旁，组成新的汉字，这些汉字的读音一般和"山"相似或相关。
+          </div>
+        </div>
+        <div style="display: flex; gap: 14px; margin-top: 6px;">
+          <span style="font-size: 22px; color: var(--primary);">表音</span>
+          <span style="font-size: 22px; color: var(--text-primary);">表意</span>
+          <span style="font-size: 18px; color: var(--primary); text-decoration: underline; cursor: pointer; margin-left: auto;">查看更多</span>
+        </div>
+      </div>
+
+      <div class="def-text" style="margin-top: 10px;">
+        <p style="font-weight: 700;">教材-对韵歌</p>
+        <p style="text-indent: 2em;">云对雨，雪对风，花对树，鸟对虫，山青对水秀，柳绿对桃红。</p>
+      </div>
+
+      <div class="def-text" style="margin-top: 8px;">
+        <p style="font-weight: 700;">高山流水</p>
+        <p style="text-indent: 2em;">伯牙是春秋战国时期著名的古琴演奏家。他的老师成连先生对他的演奏不太满意，便对伯牙说：我的老师长居东海蓬莱，我带你去找他吧，或许他能帮助你，让你的演奏更有韵味。于是他们来到了蓬莱，不巧这位仙师出去云游了，于是成连乘船去寻找。伯牙就在蓬莱住下，就这样过了十几天，博雅每天在岛上抚琴怡情，驻足远眺。远望处苍山翠柏、层峦叠嶂，听涛声起伏，海鸟高鸣，面对此情此景，他的琴声逐渐有了变化……</p>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="def-text">
+        <p style="font-weight: 700;">山与中国文化</p>
+        <p style="text-indent: 2em;">作为自然景观的山与水，在中华文化发展过程中不断被赋予丰富的文化内涵，成为中华文化中耀眼的元素。而山或巍峨或险峻，或幽深或秀美的不同特质，对应着不同的文化意蕴。巍峨险峻的山高耸入云，仿佛可以与天相通……</p>
+      </div>
+      <div class="source-text">来源《汉字文化字典》</div>
+
+      <div class="divider-line"></div>
+
+      <!-- 百科 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon" style="background: linear-gradient(143deg, #F39B00 34%, #E23700 91%);">百</div>
+          <div class="section-title">百科</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">陆地表面高度较大、坡度较陡的隆起地貌，海拔一般在500米以上。自上而下分为山顶、山坡和山麓。以较小的峰顶面积区别于高原，又以较大的高度区别于丘陵。高大的山称为山岳。按成因分为褶皱山、断块山、侵蚀山、火山等。</div>
+        <div class="source-text">来源《大辞海·天文学地球科学卷》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 古代释义 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">古代释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p>1.地面上由土石构成的隆起高耸部分。<span class="dim-text">《荀子·劝学》：积土成山，风雨兴焉。</span></p>
+          <p>2.指形状像山的东西。<span class="dim-text">如鳌山，坟山。</span></p>
+        </div>
+        <div class="source-text">来源《学生古汉语词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 汉英释义 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">汉英释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p>1 (地面形成的高耸的部分) <span class="green-text">hill</span>; <span class="green-text">mountain</span>: <span class="dim-text">翻山越岭cross over mountain after mountain;</span></p>
+          <p class="dim-text">那山海拔6000英尺。The mountain rises 6000 feet above sea level.</p>
+          <p>2 (形状像山的东西) <span class="green-text">anything resembling a mountain</span>：<span class="dim-text">冰山 iceberg</span></p>
+          <p>3 (蚕簇) <span class="green-text">bushes in which silkworms spin cocoons</span></p>
+          <p>4 (山墙) <span class="green-text">gable</span>; <span class="green-text">pediment</span></p>
+          <p>5（姓氏) <span class="green-text">a surname</span>: <span class="dim-text">山涛Shan Tao</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 启蒙 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">启</div>
+          <div class="section-title">启蒙</div>
+        </div>
+        <div style="background: #E7ECD4; border-radius: 20px; padding: 14px; margin-top: 6px; display: flex; align-items: center; gap: 18px; min-height: 140px;">
+          <div style="width: 100px; height: 100px; background: white; border-radius: 14px; border: 1px solid #CCB79F; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 64px; color: #C95F38; font-family: 'KaiTi', serif;">山</span>
+          </div>
+          <div style="font-size: 44px; color: #C95F38; font-weight: 900;">shān</div>
+          <div style="display: flex; gap: 8px; margin-left: auto;">
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">字形</div>
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">笔顺</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home')">‹</div>
+</div>
+
+<!-- ===== PAGE: 查词语-美丽 ===== -->
+<div id="page-word" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 220px; justify-content: center; padding: 0 14px;">
+      <div class="left-divider"></div>
+      <div style="font-size: 48px; color: var(--primary); font-weight: 700; line-height: 1;">美丽</div>
+      <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+        <span style="font-size: 24px; color: var(--text-primary);">měi  lì</span>
+        <div class="play-btn"></div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">反义</div>
+        <div class="nav-dot">备注</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon" style="font-size: 12px;">☆</div>
+        <div class="sidebar-icon cyan" style="font-size: 13px;">☰</div>
+        <div class="sidebar-icon green" style="font-size: 13px;">⊞</div>
+        <div class="sidebar-icon" style="font-size: 12px;">⌨</div>
+      </div>
+
+      <div class="section">
+        <div class="def-text">好看，看了感到愉悦的：<span class="dim-text">~动人｜～的桂林山水。</span></div>
+        <div class="more-link" style="margin-top: 3px;">更多词典的释义</div>
+        <div class="source-text">来源《学生现代汉语规范词典》</div>
+      </div>
+
+      <div class="tag-row" style="margin-top: 6px;">
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">搭配</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">例句</span></div><div class="tag-source">来源:《小学生多功能组词造…》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">同义</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">近义</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">翻译</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">辨析</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+        <div class="tag-pill"><div class="tag-pill-header"><div class="tag-dot"></div><span class="tag-label">备注</span></div><div class="tag-source">来源:《同义词近义词反义词词典》</div></div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">古代释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">好看。《国策·齐策》："城北徐公，齐国之美丽者也。"</div>
+        <div class="source-text">来源《大辞海·语词卷》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">古</div>
+          <div class="section-title">汉英释义</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">
+          <p><span class="green-text">beautiful</span>; <span class="green-text">beauty</span>; <span class="green-text">pretty</span>; <span class="green-text">fair</span>:</p>
+          <p>~的花朵 <span class="dim-text">beautiful flowers;</span></p>
+          <p>~富饶的国家 <span class="dim-text">a beautiful and richly-endowed country;</span></p>
+          <p>观看一幅~的图画常使人心满意足。<span class="dim-text">Looking at a beautiful painting always gives one satisfaction.;</span></p>
+          <p>那是一个宁静~的夜晚。<span class="dim-text">It was a serenely beautiful night.;</span></p>
+          <p>一个~的女人是一颗钻石，一个个德行好的女人是一个宝库。{萨迪} <span class="dim-text">A beautiful woman is diamond; a woman of virtue is a treasury. {Sadi};</span></p>
+          <p>凡是能冲上去的，能散发出来的火焰，都是~的。{安徒生} <span class="dim-text">The fireworks that jump high and go far are beautiful.{Anderson};</span></p>
+          <p>不管在哪~都受欢迎的客人。{歌德} <span class="dim-text">Beauty is everywhere a welcome guest. (Goethe);</span></p>
+          <p>最使女人~的是她相信自己美丽。{洛伦} <span class="dim-text">Nothing makes a woman more beautiful than the belief that she is beautiful. (S. Loren);</span></p>
+          <p>~只有和谦虚结合，才配称为美丽。{爱迪生} <span class="dim-text">Only if beauty integrated with modesty can it deserve the name. {Thomas Edison}</span></p>
+        </div>
+        <div class="source-text">来源《世纪汉英大辞典》</div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home')">‹</div>
+</div>
+
+<!-- ===== PAGE: 查英语句子-长句-分屏 ===== -->
+<div id="page-sentence-en" class="page">
+  <div class="split-screen">
+    <div class="sentence-left" style="border-right: 1px solid var(--divider);">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+        <div class="play-btn"></div>
+      </div>
+      <p style="text-indent: 2em;">The Power of Small Changes。Many people believe that they need to do something extraordinary to change the world. However, the truth is that small actions can make a big difference. For example, reducing the use of plastic bags or turning off the lights when leaving a room may seem like small things, but they are essential for protecting our environment.</p>
+      <p>In our daily lives, we can also help others with simple acts of kindness. A warm smile or a helpful hand can brighten someone's day. As the saying goes, "Great things are done by a series of small things brought together." If everyone contributes a little effort, our world will become a much better place to live in.</p>
+      <div class="toolbar-row">
+        <div class="toolbar-btn">语法</div>
+        <div class="play-btn" style="width: 30px; height: 30px;"></div>
+      </div>
+    </div>
+    <div class="sentence-right">
+      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+        <div class="play-btn"></div>
+      </div>
+      <p style="text-indent: 2em;">微小改变的力量。许多人认为，他们需要做一些非凡的事情才能改变世界。然而，事实是微小的行动也能产生巨大的影响。例如，减少塑料袋的使用或离开房间时随手关灯，这些看似是小事，但对于保护我们的环境至关重要。</p>
+      <p>在日常生活中，我们也可以通过简单的善举来帮助他人。一个温暖的微笑或一次援手都能点亮他人的一天。正如俗话所说："伟大的成就由一系列小事汇聚而成。" 如果每个人都贡献一点点努力，我们的世界将变成一个更美好的宜居之地。</p>
+      <div class="sentence-source">以上句子由机器智能翻译</div>
+    </div>
+    <div class="sidebar-icons" style="right: 4px;">
+      <div class="sidebar-icon" style="font-size: 12px;">☆</div>
+      <div class="sidebar-icon cyan" style="font-size: 13px;">☰</div>
+      <div class="sidebar-icon green" style="font-size: 13px;">⊞</div>
+      <div class="sidebar-icon" style="font-size: 12px;">⌨</div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home')">‹</div>
+</div>
+
+<!-- ===== PAGE: 查英语单词-a ===== -->
+<div id="page-en-word" class="page">
+  <div class="split-screen">
+    <div class="left-panel" style="width: 470px;">
+      <div class="left-divider"></div>
+      <!-- Illustration background -->
+      <div style="flex: 1; position: relative; overflow: hidden;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(145deg, #0d2b1e 0%, #0a2535 50%, #1a1822 100%); border-radius: 0 0 0 0;">
+          <!-- Letter illustration area -->
+          <div style="position: absolute; bottom: 50px; left: 30px; right: 30px;">
+            <div style="display: flex; align-items: baseline; gap: 10px;">
+              <span style="font-size: 52px; color: white; font-weight: 700; font-family: var(--font);">a</span>
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="background: rgba(255,255,255,0.12); border-radius: 4px; padding: 2px 6px; font-size: 20px; color: var(--text-primary);">英</span>
+                <span style="background: rgba(255,255,255,0.12); border-radius: 4px; padding: 2px 6px; font-size: 20px; color: var(--text-primary);">美</span>
+                <span style="font-size: 24px; color: var(--text-primary); margin-left: 6px;">/a/</span>
+              </div>
+              <div class="play-btn" style="margin-left: 6px;"></div>
+              <div class="play-btn"></div>
+            </div>
+          </div>
+          <!-- Large background letter -->
+          <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 160px; color: rgba(255,255,255,0.06); font-weight: 900; line-height: 1; pointer-events: none;">a</div>
+          <!-- Chinese characters -->
+          <div style="position: absolute; bottom: 8px; left: 100px; display: flex; gap: 8px;">
+            <div style="width: 60px; height: 60px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 36px; color: rgba(255,255,255,0.5); font-family: 'KaiTi', serif;">啊</span>
+            </div>
+            <div style="width: 60px; height: 60px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center;">
+              <span style="font-size: 36px; color: rgba(255,255,255,0.5); font-family: 'KaiTi', serif;">阿</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel" style="padding-right: 56px;">
+      <div class="right-nav">
+        <div class="nav-dot" style="font-size: 16px; color: var(--text-muted);">拼音启蒙</div>
+        <div class="nav-dot active">释义</div>
+        <div class="nav-dot">例句</div>
+      </div>
+      <div class="sidebar-icons">
+        <div class="sidebar-icon" style="font-size: 12px;">☆</div>
+        <div class="sidebar-icon cyan" style="font-size: 13px;">☰</div>
+        <div class="sidebar-icon green" style="font-size: 13px;">⊞</div>
+        <div class="sidebar-icon" style="font-size: 12px;">⌨</div>
+      </div>
+
+      <!-- 教纲 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">教</div>
+          <div class="section-title">教纲</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">一（个）；每一（个）</div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">例句</span></div>
+        <div class="def-text">I have a book.<br>我有一本书。</div>
+        <div class="source-text">来源《教纲释义词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 简明 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">简</div>
+          <div class="section-title">简明</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">一（个）</div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">例句</span></div>
+        <div class="def-text">Next, she puts in a ￥20 note and presses the 'START' button.<br>接着，她放进一张20元的钞票，按下"开始"键。</div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">近义</span></div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">谚语</span></div>
+        <div class="def-text">
+          <p>①Constant dripping wears away a stone.<br>水滴穿石。</p>
+          <p>②A cat may look at a king.<br>人人平等。</p>
+        </div>
+        <div class="source-text">来源《英汉简明词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 考试 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">考</div>
+          <div class="section-title">考试</div>
+          <div class="play-btn" style="margin-left: 4px;"></div>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">释义</span></div>
+        <div class="def-text">art.(用于单数可数名词前，表示未曾提到的) 一(人事、物);一(个，件...)</div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">考点解析</span></div>
+        <div class="def-text">
+          <p>【搭配】 have a good time玩得开心 / have a picnic去野餐 / a university 一所大学 / a useful thing 一样有用的东西</p>
+          <p>【语法点】 a, an和the都是冠词，a和an是不定冠词，the是定冠词：</p>
+          <p>·以元音音素开头的单数可数名词前用不定冠词an</p>
+          <p>·以辅音音素开头的单数可数名词前用不定冠词a</p>
+          <p>·the常见用法: 特指或上文已提到过的人或物。用于宇宙中独一无二的事物的名词前。用于最高级和序数词前。</p>
+        </div>
+        <div class="sub-mark"><div class="sub-dot"></div><span class="sub-label">考题解析</span></div>
+        <div class="def-text">
+          <p>①——Did you get there by ____ bike? ——No, I took ____ taxi.( )</p>
+          <p>A. a;a  B./;a  C.the; the  D. a; the</p>
+          <p>解析: 根据句意可知是考查搭配"坐出租车"，用take a taxi。故选:B。</p>
+          <p class="dim-text">——2011.山东泰安·中考真题</p>
+        </div>
+        <div class="def-text" style="margin-top: 6px;">
+          <p>Tracy, an exchange student from Norway is a university student in Heilongjiang now.</p>
+          <p>来自挪威的交换生特雷西现在是黑龙江省的一名大学生。</p>
+          <p class="dim-text">——2023.黑龙江齐齐哈尔·单选题考点解析</p>
+        </div>
+        <div class="source-text">来源《中考词典》</div>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- 启蒙 -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon">启</div>
+          <div class="section-title">启蒙</div>
+        </div>
+        <div style="background: #E7ECD4; border-radius: 20px; padding: 14px; margin-top: 6px; display: flex; align-items: center; gap: 18px; min-height: 140px; position: relative; overflow: hidden;">
+          <div style="width: 100px; height: 100px; background: white; border-radius: 14px; border: 1px solid #CCB79F; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <span style="font-size: 64px; color: #C95F38; font-weight: 900;">a</span>
+          </div>
+          <div style="font-size: 44px; color: #C95F38; font-weight: 900;">Aa</div>
+          <div style="display: flex; gap: 8px; margin-left: auto;">
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">字形</div>
+            <div style="background: #B19A71; border-radius: 20px; padding: 5px 14px; color: white; font-size: 22px; cursor: pointer;">笔顺</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="back-overlay" onclick="showPage('page-home')">‹</div>
+</div>
+
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  // Reset scroll positions
+  el.querySelectorAll('.right-panel, .sentence-left, .sentence-right').forEach(s => s.scrollTop = 0);
+}
+
+// Tab switching on home page
+document.querySelectorAll('.tab-item').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  });
+});
+
+// Nav dot clicks
+document.querySelectorAll('.right-nav').forEach(nav => {
+  nav.querySelectorAll('.nav-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      nav.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>
